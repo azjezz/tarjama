@@ -1,7 +1,13 @@
 [package]
 name = "tarjama"
 description = "internationalize your rust applications"
-version = "0.1.0"
+readme = "README.md"
+repository = "https://github.com/azjezz/tarjama"
+documentation = "https://docs.rs/tarjama"
+homepage = "https://github.com/azjezz/tarjama"
+categories = ["ui", "translation", "text-processing"]
+exclude = ["/.github/*"]
+version = "0.1.1"
 edition = "2021"
 authors = ["Saif Eddin Gmati <azjezz@protonmail.com>"]
 license = "MIT OR Apache-2.0"
