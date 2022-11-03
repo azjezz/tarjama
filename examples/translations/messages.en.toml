@@ -1,0 +1,2 @@
+greeting = "Hello, {name}!"
+apple = "{0} There are no apples | {1} There is one apple | {2..4} There are few apples | There are {?} apples 🍎🍎🍎🍎🍎"

@@ -1,0 +1,2 @@
+foo = "foo! {foo} {} {bar} {} {baz} 🥐"
+bar = "bar! {} {foo} {} {bar} {} 🥐"

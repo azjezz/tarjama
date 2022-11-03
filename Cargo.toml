@@ -1,0 +1,30 @@
+[package]
+name = "tarjama"
+description = "internationalize your rust applications"
+version = "0.1.0"
+edition = "2021"
+authors = ["Saif Eddin Gmati <azjezz@protonmail.com>"]
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# file feature:
+tokio = { version = "1.21.2", features = ["fs"], optional = true }
+
+# toml feature:
+toml = { version = "0.5.9", optional = true }
+futures-util = { version = "0.3.25", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1.21.2", features = ["rt", "macros"] }
+
+[features]
+default = ["toml", "file"]
+file = ["dep:tokio"]
+toml = ["dep:toml", "dep:futures-util"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[[example]]
+name = "simple"
+required-features = ["toml"]
