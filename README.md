@@ -2,6 +2,10 @@
 
 Tarjama helps internationalize your rust applications.
 
+[![Actions Status](https://github.com/azjezz/tarjama/workflows/ci/badge.svg)](https://github.com/azjezz/tarjama/actions)
+[![Crates.io](https://img.shields.io/crates/v/tarjama.svg)](https://crates.io/crates/tarjama)
+[![Docs](https://docs.rs/tarjama/badge.svg)](https://docs.rs/tarjama/latest/tarjama/)
+
 ## Usage
 
 To bring this crate into your repository, either add `tarjama` to your `Cargo.toml`, or run `cargo add tarjama`.
