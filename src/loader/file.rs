@@ -126,6 +126,8 @@ where
 #[cfg(test)]
 mod test {
     use crate::loader::file;
+    use crate::locale::ArabicVariant;
+    use crate::locale::ChineseVariant;
     use crate::locale::EnglishVariant;
     use crate::locale::FrenchVariant;
     use crate::locale::Locale;
@@ -175,6 +177,22 @@ mod test {
                             ])
                         )
                     ])
+                ),
+                (
+                    Locale::Chinese(ChineseVariant::Default),
+                    HashMap::from([(
+                        "messages".to_string(),
+                        Vec::from(["examples/translations/messages.zh.toml"
+                            .to_string()])
+                    )])
+                ),
+                (
+                    Locale::Arabic(ArabicVariant::Default),
+                    HashMap::from([(
+                        "messages".to_string(),
+                        Vec::from(["examples/translations/messages.ar.toml"
+                            .to_string()])
+                    )])
                 )
             ])
         );

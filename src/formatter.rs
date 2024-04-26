@@ -43,6 +43,8 @@ pub trait Formatter: Send + Sync {
         message: &str,
         context: &Context,
     ) -> Result<String, Error>;
+
+    fn box_clone(&self) -> Box<dyn Formatter>;
 }
 
 /// Default implementation for `Formatter`.
@@ -72,16 +74,22 @@ impl Default for Box<dyn Formatter> {
     }
 }
 
+impl Clone for Box<dyn Formatter> {
+    fn clone(&self) -> Box<dyn Formatter> {
+        self.box_clone()
+    }
+}
+
 #[doc(hidden)]
-#[derive(Clone)]
-struct DefaultFormatter {}
+#[derive(Debug, Clone, Copy, Hash)]
+struct DefaultFormatter;
 
 unsafe impl Send for DefaultFormatter {}
 unsafe impl Sync for DefaultFormatter {}
 
 impl DefaultFormatter {
     pub fn new() -> DefaultFormatter {
-        DefaultFormatter {}
+        DefaultFormatter
     }
 }
 
@@ -99,12 +107,18 @@ impl Formatter for DefaultFormatter {
         context: &Context,
     ) -> Result<String, Error> {
         let message = if let Some(count) = context.count {
-            parse_plural_messages(message)?.matching(count)
+            let plural_messages = parse_plural_messages(message)?;
+
+            plural_messages.matching(count)
         } else {
-            message
+            message.to_string()
         };
 
         format_raw(message, context)
+    }
+
+    fn box_clone(&self) -> Box<dyn Formatter> {
+        Box::new(self.clone())
     }
 }
 
@@ -155,26 +169,24 @@ impl std::fmt::Display for Rule {
 
 #[doc(hidden)]
 #[derive(Debug)]
-struct PluralMessages<'a> {
-    pub rules: Vec<(&'a str, Rule)>,
-    pub default: &'a str,
+struct PluralMessages {
+    pub rules: Vec<(String, Rule)>,
+    pub default: String,
 }
 
-impl<'a> PluralMessages<'a> {
-    pub fn matching(&self, value: i64) -> &'a str {
-        let mut message: Option<&'a str> = None;
-        for rule in &self.rules {
-            if rule.1.matches(value) {
-                message = Some(rule.0);
-                break;
+impl PluralMessages {
+    pub fn matching(&self, value: i64) -> String {
+        for (message, rule) in &self.rules {
+            if rule.matches(value) {
+                return message.clone();
             }
         }
 
-        message.unwrap_or(self.default)
+        return self.default.clone();
     }
 }
 
-fn format_raw(message: &str, context: &Context) -> Result<String, Error> {
+fn format_raw(message: String, context: &Context) -> Result<String, Error> {
     let mut buffer = String::new();
     let mut arg_idx = 0;
     let mut position = 0;
@@ -295,43 +307,46 @@ fn format_raw(message: &str, context: &Context) -> Result<String, Error> {
 }
 
 #[doc(hidden)]
-fn parse_plural_messages<'a>(
-    message: &'a str,
-) -> Result<PluralMessages<'a>, Error> {
+fn parse_plural_messages(message: &str) -> Result<PluralMessages, Error> {
     let message = message.trim();
-
-    let mut messages: Vec<&str> = vec![];
+    let mut messages: Vec<_> = vec![];
 
     if !message.contains('|') {
         if !message.is_empty() {
-            messages.push(message);
+            messages.push(message.to_string());
         }
     } else {
-        let mut iter = message.chars().into_iter().peekable();
-        let mut i = 0;
-        let mut n = 0;
-        let mut s = 0;
-        while let Some(current) = iter.next() {
-            if let Some(next) = iter.peek() {
-                if current == '|' {
-                    s += 1;
-                    // lookahead for ||
-                    if *next != '|' && s % 2 != 0 {
-                        messages.push(message[i..n].trim());
-                        i = n + 1;
-                    }
-                } else {
-                    s = 0;
+        use unicode_segmentation::UnicodeSegmentation;
+        let graphemes = UnicodeSegmentation::graphemes(message, true)
+            .collect::<Vec<&str>>();
+
+        let mut i = 0usize;
+        let mut s = 0usize;
+        let mut start = 0usize;
+        while i < graphemes.len() {
+            if graphemes[i] == "|" {
+                s += 1;
+                // lookahead for ||
+                if i + 1 < graphemes.len()
+                    && graphemes[i + 1] != "|"
+                    && s % 2 != 0
+                {
+                    messages
+                        .push(graphemes[start..i].concat().trim().to_string());
+                    start = i + 1;
                 }
             } else {
-                messages.push(message[i..].trim());
+                s = 0;
             }
-            n += 1;
+            i += 1;
+        }
+        if start < graphemes.len() {
+            messages.push(graphemes[start..].concat().trim().to_string()); // Push the remaining graphemes
         }
     }
 
     if let Some((last, messages)) = messages.split_last() {
-        let mut rules: Vec<(&'a str, Rule)> = vec![];
+        let mut rules: Vec<(String, Rule)> = vec![];
         for message in messages {
             if message.starts_with('{') {
                 if let Some(ending_position) = message.find('}') {
@@ -406,7 +421,7 @@ fn parse_plural_messages<'a>(
                         Rule::Match { values }
                     };
 
-                    rules.push((target, rule));
+                    rules.push((target.to_string(), rule));
                 } else {
                     return Err(Error::FormattingError(format!("formatting: failed to parse rule for `'{message}'`, expected `'}}'` but string was terminated.")));
                 }
@@ -415,7 +430,7 @@ fn parse_plural_messages<'a>(
             }
         }
 
-        Ok(PluralMessages { rules, default: last })
+        Ok(PluralMessages { rules, default: last.to_string() })
     } else {
         Err(Error::FormattingError("formatting: failed to parse plural messages, expected at least a default message but string was terminated.".to_string()))
     }

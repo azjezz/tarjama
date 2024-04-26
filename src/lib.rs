@@ -1,3 +1,5 @@
+#[cfg(feature = "actix-web")]
+pub mod actix;
 pub mod catalogue;
 pub mod context;
 pub mod error;
@@ -41,6 +43,7 @@ use crate::locale::Locale;
 ///
 /// assert_eq!(message, "Hello, World!".to_string());
 /// ```
+#[derive(Clone)]
 pub struct Translator {
     formatter: Box<dyn Formatter>,
     bag: CatalogueBag,
@@ -116,6 +119,10 @@ impl Translator {
     /// When the `count` field of `Context` is `Some(i)`, the message is parsed for plural forms, and
     /// a translation is chosen according to `i`.
     ///
+    /// If the request message is not found in the given locale, the translator will first fallback to the
+    /// default variant of the locale if it exists, and is different from the given locale, and then to the
+    /// fallback locale if it is set.
+    ///
     /// # Examples
     ///
     /// ```
@@ -128,7 +135,7 @@ impl Translator {
     ///
     /// use std::collections::HashMap;
     ///
-    /// let translator = Translator::with_catalogue_bag(CatalogueBag::with_catalogues(vec![
+    /// let mut translator = Translator::with_catalogue_bag(CatalogueBag::with_catalogues(vec![
     ///     Catalogue::with_messages(Locale::English(EnglishVariant::Default), HashMap::from([
     ///         ("messages".to_owned(), HashMap::from([
     ///           ("apple".to_owned(), "{0} There are no apples | {1} There is one apple | There are {?} apples".to_owned()),
@@ -136,8 +143,18 @@ impl Translator {
     ///     ]))
     /// ]));
     ///
+    /// translator.set_fallback_locale(Locale::English(EnglishVariant::Default));
+    ///
     /// let message = translator.trans("en", "messages", "apple", context!(? = 4));
     /// assert_eq!(message.unwrap(), "There are 4 apples".to_string());
+    ///
+    /// // The message is not defined for "en_GB", so the translator will fallback to "en"
+    /// let message = translator.trans("en_GB", "messages", "apple", context!(? = 1));
+    /// assert_eq!(message.unwrap(), "There is one apple".to_string());
+    ///
+    /// // The message is not defined for "ar_TN", so the translator will fallback to "ar", and then to "en"
+    /// let message = translator.trans("ar_TN", "messages", "apple", context!(? = 0));
+    /// assert_eq!(message.unwrap(), "There are no apples".to_string());
     /// ```
     pub fn trans<T, C>(
         &self,
@@ -166,29 +183,35 @@ impl Translator {
         }
 
         if let Some(message) = message {
-            self.formatter.format(&locale, message, &context)
-        } else {
-            // fallback
-            if let Some(fallback) = &self.fallback_locale {
-                let catalogues = self.bag.get(fallback);
-                for catalogue in catalogues.iter() {
-                    if let Some(msg) = catalogue.get(domain, id) {
-                        message = Some(msg);
+            return self.formatter.format(&locale, message, &context);
+        }
 
-                        break;
-                    }
-                }
+        if locale.has_variant() {
+            return self.trans(
+                locale.with_default_variant(),
+                domain,
+                id,
+                context,
+            );
+        }
 
-                if let Some(message) = message {
-                    return self.formatter.format(fallback, message, &context);
-                }
+        // if locale is different that self.fallback_locale:
+        if let Some(fallback) = &self.fallback_locale {
+            if fallback != &locale {
+                return self.trans(fallback, domain, id, context);
             }
+        }
 
-            Err(Error::MessageNotFound(
-                locale,
-                domain.to_string(),
-                id.to_string(),
-            ))
+        Err(Error::MessageNotFound(locale, domain.to_string(), id.to_string()))
+    }
+}
+
+impl Default for Translator {
+    fn default() -> Self {
+        Self {
+            formatter: Default::default(),
+            bag: Default::default(),
+            fallback_locale: None,
         }
     }
 }
@@ -381,6 +404,74 @@ mod test {
         assert_ok!(
             translator.trans("fr", "messages", "apple", context!(? = 5)),
             "There are 5 apples"
+        );
+    }
+
+    #[test]
+    fn variant_fallback() {
+        let bag = CatalogueBag::with_catalogues(vec![
+            Catalogue::with_messages(
+                Locale::English(EnglishVariant::Default),
+                HashMap::from([(
+                    "messages".to_owned(),
+                    HashMap::from([(
+                        "greeting".to_owned(),
+                        "Hello, {name}!".to_owned(),
+                    )]),
+                )]),
+            ),
+            Catalogue::with_messages(
+                Locale::French(FrenchVariant::Default),
+                HashMap::from([(
+                    "messages".to_owned(),
+                    HashMap::from([(
+                        "greeting".to_owned(),
+                        "Bonjour, {name}!".to_owned(),
+                    )]),
+                )]),
+            ),
+        ]);
+
+        let translator = Translator::with_catalogue_bag(bag);
+
+        assert_ok!(
+            translator.trans(
+                "en_GB",
+                "messages",
+                "greeting",
+                context!(name = "Saif")
+            ),
+            "Hello, Saif!"
+        );
+
+        assert_ok!(
+            translator.trans(
+                "en",
+                "messages",
+                "greeting",
+                context!(name = "Saif")
+            ),
+            "Hello, Saif!"
+        );
+
+        assert_ok!(
+            translator.trans(
+                "fr",
+                "messages",
+                "greeting",
+                context!(name = "Saif")
+            ),
+            "Bonjour, Saif!"
+        );
+
+        assert_ok!(
+            translator.trans(
+                "fr_FR",
+                "messages",
+                "greeting",
+                context!(name = "Saif")
+            ),
+            "Bonjour, Saif!"
         );
     }
 
