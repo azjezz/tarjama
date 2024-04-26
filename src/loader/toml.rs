@@ -10,6 +10,19 @@ use std::path::Path;
 use tokio::fs;
 use toml;
 
+/// Load a catalogue bag from a directory containing toml files.
+///
+/// Files within the directory should be named in the following format:  `{domain}.{locale}.toml`.
+///
+/// # Examples
+///
+/// ```
+/// # async fn doc() {
+/// use tarjama::loader::toml::load;
+///
+/// let catalogue_bag = load("examples/translations").await.expect("Failed to load catalogue bag");
+/// # }
+/// ```
 pub async fn load<T>(directory: T) -> Result<CatalogueBag, Error>
 where
     T: AsRef<Path> + 'static,

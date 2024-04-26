@@ -7,7 +7,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Locale {
     Afar,
     Abkhazian,
@@ -192,6 +192,56 @@ pub enum Locale {
     Zulu,
 }
 
+impl Locale {
+    /// Determine if the Locale has a specific variant (non-default)
+    pub fn has_variant(&self) -> bool {
+        match self {
+            Locale::Arabic(variant) => *variant != ArabicVariant::Default,
+            Locale::Chinese(variant) => *variant != ChineseVariant::Default,
+            Locale::German(variant) => *variant != GermanVariant::Default,
+            Locale::Dutch(variant) => *variant != DutchVariant::Default,
+            Locale::English(variant) => *variant != EnglishVariant::Default,
+            Locale::French(variant) => *variant != FrenchVariant::Default,
+            Locale::Italian(variant) => *variant != ItalianVariant::Default,
+            Locale::Portuguese(variant) => {
+                *variant != PortugueseVariant::Default
+            }
+            Locale::Romanian(variant) => *variant != RomanianVariant::Default,
+            Locale::Russian(variant) => *variant != RussianVariant::Default,
+            Locale::Spanish(variant) => *variant != SpanishVariant::Default,
+            Locale::Swedish(variant) => *variant != SwedishVariant::Default,
+            _ => false,
+        }
+    }
+
+    /// Return the locale with its default variant, if applicable
+    pub fn with_default_variant(self) -> Self {
+        match self {
+            Locale::Arabic(_) => Locale::Arabic(ArabicVariant::Default),
+            Locale::Chinese(_) => Locale::Chinese(ChineseVariant::Default),
+            Locale::German(_) => Locale::German(GermanVariant::Default),
+            Locale::Dutch(_) => Locale::Dutch(DutchVariant::Default),
+            Locale::English(_) => Locale::English(EnglishVariant::Default),
+            Locale::French(_) => Locale::French(FrenchVariant::Default),
+            Locale::Italian(_) => Locale::Italian(ItalianVariant::Default),
+            Locale::Portuguese(_) => {
+                Locale::Portuguese(PortugueseVariant::Default)
+            }
+            Locale::Romanian(_) => Locale::Romanian(RomanianVariant::Default),
+            Locale::Russian(_) => Locale::Russian(RussianVariant::Default),
+            Locale::Spanish(_) => Locale::Spanish(SpanishVariant::Default),
+            Locale::Swedish(_) => Locale::Swedish(SwedishVariant::Default),
+            _ => self,
+        }
+    }
+}
+
+impl From<&Locale> for Locale {
+    fn from(value: &Locale) -> Self {
+        value.clone()
+    }
+}
+
 impl TryFrom<String> for Locale {
     type Error = Error;
 
@@ -344,6 +394,9 @@ impl TryFrom<String> for Locale {
 /// let locale: Locale = "fr".try_into().unwrap();
 /// assert_eq!(locale.to_string(), "fr");
 ///
+/// let locale: Locale = "fr_FR".try_into().unwrap();
+/// assert_eq!(locale.to_string(), "fr_FR");
+///
 /// let locale: Locale = "fr_BE".try_into().unwrap();
 /// assert_eq!(locale.to_string(), "fr_BE");
 ///
@@ -442,12 +495,16 @@ impl TryFrom<String> for Locale {
 ///
 /// let locale: Locale = "sv_FI".try_into().unwrap();
 /// assert_eq!(locale.to_string(), "sv_FI");
+///
+/// let locale: Locale = "sv-FI".try_into().unwrap();
+/// assert_eq!(locale.to_string(), "sv_FI");
 /// ```
 impl TryFrom<&str> for Locale {
     type Error = Error;
 
     fn try_from(value: &str) -> CoreResult<Self, Self::Error> {
-        match value {
+        let value = value.replace("-", "_");
+        match &*value {
             "aa" => Ok(Locale::Afar),
             "ab" => Ok(Locale::Abkhazian),
             "af" => Ok(Locale::Afrikaans),
@@ -535,6 +592,7 @@ impl TryFrom<&str> for Locale {
             "fj" => Ok(Locale::Fijian),
             "fi" => Ok(Locale::Finnish),
             "fr" => Ok(Locale::French(FrenchVariant::Default)),
+            "fr_FR" => Ok(Locale::French(FrenchVariant::France)),
             "fr_BE" => Ok(Locale::French(FrenchVariant::Belgium)),
             "fr_CA" => Ok(Locale::French(FrenchVariant::Canada)),
             "fr_LU" => Ok(Locale::French(FrenchVariant::Luxembourg)),
@@ -1303,6 +1361,7 @@ impl Display for Locale {
             Locale::Fijian => "fj",
             Locale::Finnish => "fi",
             Locale::French(FrenchVariant::Default) => "fr",
+            Locale::French(FrenchVariant::France) => "fr_FR",
             Locale::French(FrenchVariant::Belgium) => "fr_BE",
             Locale::French(FrenchVariant::Canada) => "fr_CA",
             Locale::French(FrenchVariant::Luxembourg) => "fr_LU",
@@ -1524,7 +1583,7 @@ impl Display for Locale {
 /// let locale = Locale::Arabic(ArabicVariant::Yemen);
 /// assert_eq!(locale.to_string(), "ar_YE");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ArabicVariant {
     Default,
     Algeria,
@@ -1571,7 +1630,7 @@ unsafe impl Send for ArabicVariant {}
 /// let locale = Locale::Chinese(ChineseVariant::Taiwan);
 /// assert_eq!(locale.to_string(), "zh_TW");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ChineseVariant {
     Default,
     HongKong,
@@ -1606,7 +1665,7 @@ unsafe impl Send for ChineseVariant {}
 /// let locale = Locale::German(GermanVariant::Switzerland);
 /// assert_eq!(locale.to_string(), "de_CH");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GermanVariant {
     Default,
     Austria,
@@ -1632,7 +1691,7 @@ unsafe impl Send for GermanVariant {}
 /// let locale = Locale::Dutch(DutchVariant::Belgium);
 /// assert_eq!(locale.to_string(), "nl_BE");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DutchVariant {
     Default,
     Belgium,
@@ -1682,7 +1741,7 @@ unsafe impl Send for DutchVariant {}
 /// let locale = Locale::English(EnglishVariant::UnitedStates);
 /// assert_eq!(locale.to_string(), "en_US");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EnglishVariant {
     Default,
     Australia,
@@ -1711,6 +1770,9 @@ unsafe impl Send for EnglishVariant {}
 /// let locale = Locale::French(FrenchVariant::Default);
 /// assert_eq!(locale.to_string(), "fr");
 ///
+/// let locale = Locale::French(FrenchVariant::France);
+/// assert_eq!(locale.to_string(), "fr_FR");
+///
 /// let locale = Locale::French(FrenchVariant::Belgium);
 /// assert_eq!(locale.to_string(), "fr_BE");
 ///
@@ -1723,9 +1785,10 @@ unsafe impl Send for EnglishVariant {}
 /// let locale = Locale::French(FrenchVariant::Switzerland);
 /// assert_eq!(locale.to_string(), "fr_CH");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FrenchVariant {
     Default,
+    France,
     Belgium,
     Canada,
     Luxembourg,
@@ -1749,7 +1812,7 @@ unsafe impl Send for FrenchVariant {}
 /// let locale = Locale::Italian(ItalianVariant::Switzerland);
 /// assert_eq!(locale.to_string(), "it_CH");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ItalianVariant {
     Default,
     Switzerland,
@@ -1772,7 +1835,7 @@ unsafe impl Send for ItalianVariant {}
 /// let locale = Locale::Portuguese(PortugueseVariant::Brazil);
 /// assert_eq!(locale.to_string(), "pt_BR");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PortugueseVariant {
     Default,
     Brazil,
@@ -1795,7 +1858,7 @@ unsafe impl Send for PortugueseVariant {}
 /// let locale = Locale::Romanian(RomanianVariant::Moldova);
 /// assert_eq!(locale.to_string(), "ro_MD");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RomanianVariant {
     Default,
     Moldova,
@@ -1818,7 +1881,7 @@ unsafe impl Send for RomanianVariant {}
 /// let locale = Locale::Russian(RussianVariant::Moldova);
 /// assert_eq!(locale.to_string(), "ru_MD");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RussianVariant {
     Default,
     Moldova,
@@ -1892,7 +1955,7 @@ unsafe impl Send for RussianVariant {}
 /// let locale = Locale::Spanish(SpanishVariant::Venezuela);
 /// assert_eq!(locale.to_string(), "es_VE");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SpanishVariant {
     Default,
     Argentina,
@@ -1932,7 +1995,7 @@ unsafe impl Send for SpanishVariant {}
 /// let locale = Locale::Swedish(SwedishVariant::Finland);
 /// assert_eq!(locale.to_string(), "sv_FI");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SwedishVariant {
     Default,
     Finland,

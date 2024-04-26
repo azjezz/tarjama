@@ -80,7 +80,7 @@ impl CatalogueBag {
     ///         HashMap::from([("greeting".to_owned(), "{name} أهلا".to_owned())]),
     ///     )]),
     /// )]);
-    ///     
+    ///
     /// let mut other = CatalogueBag::with_catalogues(vec![Catalogue::with_messages(
     ///     Locale::English(EnglishVariant::Default),
     ///     HashMap::from([(

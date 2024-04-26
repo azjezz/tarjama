@@ -7,30 +7,39 @@ documentation = "https://docs.rs/tarjama"
 homepage = "https://github.com/azjezz/tarjama"
 categories = ["accessibility", "internationalization", "localization", "text-processing"]
 exclude = ["/.github/*"]
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 authors = ["Saif Eddin Gmati <azjezz@protonmail.com>"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-# file feature:
+unicode-segmentation = "1.11.0"
 tokio = { version = "1.21.2", features = ["fs"], optional = true }
-
-# toml feature:
 toml = { version = "0.5.9", optional = true }
 futures-util = { version = "0.3.25", optional = true }
+actix-web = { version = "4.5.1", default-features = false, optional = true }
+actix-utils = { version = "3.0.1", optional = true }
+accept-language = { version = "3.1.0", optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.21.2", features = ["rt", "macros"] }
+tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros"] }
 
 [features]
-default = ["toml", "file"]
+default = ["toml"]
 file = ["dep:tokio"]
-toml = ["dep:toml", "dep:futures-util"]
+toml = ["file", "dep:toml", "dep:futures-util"]
+actix-web = ["dep:actix-web", "dep:actix-utils", "dep:accept-language"]
 
 [package.metadata.docs.rs]
 all-features = true
 
 [[example]]
+name = "directory"
+required-features = ["toml"]
+
+[[example]]
 name = "simple"
 required-features = ["toml"]
+
+[[example]]
+name = "plural"
