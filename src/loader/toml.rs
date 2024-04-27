@@ -2,12 +2,9 @@ use crate::catalogue::Catalogue;
 use crate::catalogue::CatalogueBag;
 use crate::error::Error;
 use crate::loader::error::Error as LoadingError;
-use crate::loader::file::iterate;
 
-use futures_util::future::join_all;
 use std::collections::HashMap;
 use std::path::Path;
-use tokio::fs;
 use toml;
 
 /// Load a catalogue bag from a directory containing toml files.
@@ -23,10 +20,15 @@ use toml;
 /// let catalogue_bag = load("examples/translations").await.expect("Failed to load catalogue bag");
 /// # }
 /// ```
+#[cfg(feature = "async")]
 pub async fn load<T>(directory: T) -> Result<CatalogueBag, Error>
 where
     T: AsRef<Path> + 'static,
 {
+    use crate::loader::file::iterate;
+    use futures_util::future::join_all;
+    use tokio::fs;
+
     let data = iterate(directory, &["toml".to_string()]).await?;
 
     let mut bag = CatalogueBag::new();
@@ -58,6 +60,49 @@ where
 
             for messages in message_groups {
                 for (id, message) in messages? {
+                    catalogue.insert(&domain, &id, &message);
+                }
+            }
+        }
+
+        bag.insert(catalogue);
+    }
+
+    Ok(bag)
+}
+
+/// Synchronously load a catalogue bag from a directory containing toml files.
+///
+/// Files within the directory should be named in the following format: `{domain}.{locale}.toml`.
+pub fn load_sync<T>(directory: T) -> Result<CatalogueBag, Error>
+where
+    T: AsRef<Path>,
+{
+    use crate::loader::file::iterate_sync;
+    use std::fs;
+
+    // Utilize the previously created iterate_sync function
+    let data = iterate_sync(directory, &["toml".to_string()])?;
+
+    let mut bag = CatalogueBag::new();
+    for (locale, domain_files) in data {
+        let mut catalogue = Catalogue::new(locale);
+        for (domain, message_files) in domain_files {
+            // Directly read and process files synchronously
+            for path in message_files {
+                let content = fs::read_to_string(&path).map_err(|e| {
+                    Error::LoadingError(LoadingError::FailedToReadFile(
+                        path.clone(),
+                        e,
+                    ))
+                })?;
+
+                let messages: HashMap<String, String> =
+                    toml::from_str(&content).map_err(|e| {
+                        Error::LoadingError(LoadingError::FailedToParseFile(e))
+                    })?;
+
+                for (id, message) in messages {
                     catalogue.insert(&domain, &id, &message);
                 }
             }

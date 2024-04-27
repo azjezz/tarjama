@@ -5,7 +5,12 @@ readme = "README.md"
 repository = "https://github.com/azjezz/tarjama"
 documentation = "https://docs.rs/tarjama"
 homepage = "https://github.com/azjezz/tarjama"
-categories = ["accessibility", "internationalization", "localization", "text-processing"]
+categories = [
+    "accessibility",
+    "internationalization",
+    "localization",
+    "text-processing",
+]
 exclude = ["/.github/*"]
 version = "0.2.0"
 edition = "2021"
@@ -25,9 +30,10 @@ accept-language = { version = "3.1.0", optional = true }
 tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros"] }
 
 [features]
-default = ["toml"]
-file = ["dep:tokio"]
-toml = ["file", "dep:toml", "dep:futures-util"]
+default = ["async", "toml"]
+async = ["dep:tokio", "dep:futures-util"]
+file = []
+toml = ["file", "dep:toml"]
 actix-web = ["dep:actix-web", "dep:actix-utils", "dep:accept-language"]
 
 [package.metadata.docs.rs]

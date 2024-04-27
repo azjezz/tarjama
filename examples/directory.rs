@@ -4,9 +4,8 @@ use tarjama::loader::toml;
 use tarjama::locale;
 use tarjama::Translator;
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    let catalogue_bag = toml::load("examples/translations").await?;
+fn main() -> Result<(), Error> {
+    let catalogue_bag = toml::load_sync("examples/translations")?;
 
     let mut translator = Translator::with_catalogue_bag(catalogue_bag);
 
