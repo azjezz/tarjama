@@ -18,6 +18,13 @@ Add Tarjama to your project using Cargo:
 cargo add tarjama
 ```
 
+or add it to your `Cargo.toml`:
+
+```toml
+[dependencies]
+tarjama = "0.2.1"
+```
+
 ### Sample Usage 🛠
 
 **Basic Usage**:
@@ -124,10 +131,11 @@ async fn main() -> std::io::Result<()> {
 ```
 
 ## Feature Flags 🚩</summary>
-  - **actix-web**: For Actix Web middleware support, enabling this feature allows you to use the Tarjama middleware with Actix Web applications.
-  - **file**: For basic file loader operations, this feature is useful for implementing custom loaders.
-  - **toml**: For toml file support, enabling this feature allows you to load translations from toml files.
-  - **default**: Includes `toml`.
+
+- **actix-web**: For Actix Web middleware support, enabling this feature allows you to use the Tarjama middleware with Actix Web applications.
+- **file**: For basic file loader operations, this feature is useful for implementing custom loaders.
+- **toml**: For toml file support, enabling this feature allows you to load translations from toml files.
+- **default**: Includes `toml`.
 
 ## Licensing 📜
 
